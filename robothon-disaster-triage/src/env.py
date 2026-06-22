@@ -343,6 +343,25 @@ class DisasterTriageEnv(gym.Env):
         self._kinematic_grasp_obj_bid = -1
         self._kinematic_grasp_offset = None
 
+    def get_next_incomplete_object(self) -> int:
+        """Return the index of the next uncompleted object.
+        
+        Used by the scripted controller to stay synchronized with the
+        environment's object tracking after placements.
+        
+        Returns
+        -------
+        int
+            Index of the next object to work on, or len(OBJECT_NAMES) if done.
+        """
+        if len(self.completed_objects) >= len(OBJECT_NAMES):
+            return len(OBJECT_NAMES)  # All done
+        # Find the next uncompleted object
+        next_idx = (self.current_obj_idx + 1) % len(OBJECT_NAMES)
+        while next_idx in self.completed_objects:
+            next_idx = (next_idx + 1) % len(OBJECT_NAMES)
+        return next_idx
+
     def render(self):
         if self.render_mode is None:
             return None
