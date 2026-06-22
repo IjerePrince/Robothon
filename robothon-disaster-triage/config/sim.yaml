@@ -1,0 +1,58 @@
+# sim.yaml — Disaster Triage simulation parameters
+# Used by src/env.py
+
+# Physics
+sim:
+  timestep: 0.002          # seconds (scene.xml defines this)
+  integrator: implicitfast
+  iterations: 50
+  solver: Newton
+  gravity: [0, 0, -9.81]
+
+# Environment
+env:
+  max_steps: 1500
+  frame_skip: 10           # env dt = 20 ms
+  reward_scale: 1.0
+  render_fps: 30
+
+# Robot configuration
+robot:
+  total_dof: 22            # 6 UR5e + 16 Shadow Hand Lite
+  ur5e_dof: 6
+  hand_dof: 16
+  n_tactile_sensors: 6    # 5 fingertips + 1 palm
+
+  # UR5e control gains (position actuators)
+  ur5e_kp: 200
+  ur5e_damping: 5.0
+  ur5e_armature: 0.1
+  ur5e_force_limit: 150    # Nm
+
+  # Shadow Hand control gains (position actuators)
+  hand_kp: 40
+  hand_damping: 0.3
+  hand_armature: 0.005
+  hand_force_limit: 3      # Nm
+
+  # Joint limits
+  ur5e_joint_range: [-6.28, 6.28]
+  hand_joint_range: [-1.57, 1.57]
+
+# Tactile sensor config
+tactile:
+  type: touch              # MuJoCo <touch> sensor at site
+  channels: 6              # 5 fingertips + 1 palm
+  fingertip_threshold: 0.5  # N — below this, no contact registered
+  saturation: 50.0         # N — sensor caps at this value
+
+# Equality constraints
+equality:
+  - name: eq_lid_pivot
+    type: connect
+    description: "Container lid pivots around the base's back edge"
+    active: true
+  - name: eq_hand_to_glass
+    type: weld
+    description: "Welds glass vial to palm when activated (simulates grasp attachment)"
+    active: false

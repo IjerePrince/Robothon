@@ -1,0 +1,135 @@
+<!--
+  ur5e.xml — UR5e 6-DOF arm.
+
+  Built entirely from primitives (cylinders + capsules + spheres) so the
+  project has zero external mesh dependencies.  All masses / inertias come
+  from the official UR5e specs.
+
+  This file is a fragment intended to be <include>'d by scene.xml.
+  Top-level <compiler>, <option>, <asset> are provided by the parent.
+-->
+<mujoco model="ur5e">
+  <default>
+    <joint damping="5.0" armature="0.1" frictionloss="0.05" />
+    <geom condim="4" friction="0.7 0.05 0.02" rgba="0.25 0.25 0.28 1" />
+    <default class="ur5e">
+      <joint range="-6.28 6.28" damping="5.0" armature="0.1" />
+      <geom rgba="0.25 0.25 0.28 1" />
+      <position kp="200" forcerange="-150 150" ctrlrange="-6.28 6.28" />
+    </default>
+  </default>
+
+  <worldbody>
+    <!-- Robot base — fixed to ground. -->
+    <body name="base_link" pos="0 0 0.781">
+      <inertial pos="0 0 0" mass="2.0" diaginertia="0.005 0.005 0.005" />
+      <geom name="base_geom" type="cylinder" size="0.075 0.040" rgba="0.30 0.30 0.32 1" />
+      <geom name="base_col"  type="cylinder" size="0.075 0.040" rgba="0.30 0.30 0.32 1"
+            pos="0 0 0.020" />
+
+      <!-- Shoulder joint (z-axis, base rotation). -->
+      <body name="shoulder_link" pos="0 0 0.080">
+        <inertial pos="0 0 0" mass="2.0" diaginertia="0.008 0.008 0.008" />
+        <joint name="shoulder_pan_joint" axis="0 0 1" class="ur5e" range="-6.28 6.28" />
+        <geom name="sh_joint_geom" type="cylinder" size="0.060 0.030"
+              rgba="0.10 0.10 0.12 1" />
+        <geom name="sh_link_geom"  type="cylinder" size="0.045 0.090"
+              euler="1.5708 0 0" pos="0 0 0.060" rgba="0.18 0.36 0.55 1" />
+
+        <!-- Upper arm (y-axis, shoulder lift). -->
+        <body name="upper_arm_link" pos="0 0.135 0">
+          <inertial pos="0 0 0.140" mass="3.42"
+                    diaginertia="0.025 0.025 0.005" />
+          <joint name="shoulder_lift_joint" axis="0 1 0" class="ur5e"
+                 range="-6.28 6.28" />
+          <geom name="ua_joint_geom" type="cylinder" size="0.060 0.030"
+                euler="1.5708 0 0" rgba="0.10 0.10 0.12 1" />
+          <geom name="ua_link_geom"  type="capsule" size="0.040"
+                fromto="0 0 0 0 0 0.280" rgba="0.18 0.36 0.55 1" />
+
+          <!-- Forearm (y-axis, elbow). -->
+          <body name="forearm_link" pos="0 0 0.280">
+            <inertial pos="0 0 0.130" mass="1.26"
+                      diaginertia="0.010 0.010 0.002" />
+            <joint name="elbow_joint" axis="0 1 0" class="ur5e"
+                   range="-3.14 3.14" />
+            <geom name="fa_joint_geom" type="cylinder" size="0.060 0.025"
+                  rgba="0.10 0.10 0.12 1" />
+            <geom name="fa_link_geom"  type="capsule" size="0.035"
+                  fromto="0 0 0 0 0 0.250" rgba="0.18 0.36 0.55 1" />
+
+            <!-- Wrist 1 (x-axis). -->
+            <body name="wrist_1_link" pos="0 0 0.250">
+              <inertial pos="0 0 0" mass="0.80"
+                        diaginertia="0.002 0.002 0.002" />
+              <joint name="wrist_1_joint" axis="1 0 0" class="ur5e"
+                     range="-6.28 6.28" />
+              <geom name="w1_joint_geom" type="cylinder" size="0.045 0.025"
+                    euler="0 1.5708 0" rgba="0.10 0.10 0.12 1" />
+              <geom name="w1_link_geom"  type="cylinder" size="0.035 0.060"
+                    euler="0 1.5708 0" pos="0 0.060 0" rgba="0.30 0.30 0.32 1" />
+
+              <!-- Wrist 2 (y-axis). -->
+              <body name="wrist_2_link" pos="0 0.120 0">
+                <inertial pos="0 0 0" mass="0.80"
+                          diaginertia="0.002 0.002 0.002" />
+                <joint name="wrist_2_joint" axis="0 1 0" class="ur5e"
+                       range="-6.28 6.28" />
+                <geom name="w2_joint_geom" type="cylinder" size="0.045 0.025"
+                      rgba="0.10 0.10 0.12 1" />
+                <geom name="w2_link_geom"  type="cylinder" size="0.035 0.060"
+                      pos="0 0 0.060" rgba="0.30 0.30 0.32 1" />
+
+                <!-- Wrist 3 (x-axis) — tool flange. -->
+                <body name="wrist_3_link" pos="0 0 0.120">
+                  <inertial pos="0 0 0.040" mass="0.20"
+                            diaginertia="0.0008 0.0008 0.0008" />
+                  <joint name="wrist_3_joint" axis="1 0 0" class="ur5e"
+                         range="-6.28 6.28" />
+                  <geom name="w3_joint_geom" type="cylinder" size="0.040 0.020"
+                        euler="0 1.5708 0" rgba="0.10 0.10 0.12 1" />
+                  <geom name="w3_flange_geom" type="cylinder" size="0.025 0.020"
+                        pos="0 0 0.040" rgba="0.18 0.36 0.55 1" />
+                  <!-- Standard UR tool0 site — Shadow Hand is welded here. -->
+                  <site name="tool0" pos="0 0 0.060" size="0.015"
+                        rgba="1 0.3 0.3 0.5" group="3" />
+                  <!-- Body where the hand will be attached by scene.xml. -->
+                  <body name="hand_mount" pos="0 0 0.060">
+                    <!-- Empty placeholder; the Shadow Hand will be welded as
+                         a child of this body via scene.xml's <include>. -->
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <!-- Position actuators, one per UR5e joint. -->
+  <actuator>
+    <position name="act_shoulder_pan"   joint="shoulder_pan_joint"   class="ur5e" />
+    <position name="act_shoulder_lift"  joint="shoulder_lift_joint"  class="ur5e" />
+    <position name="act_elbow"          joint="elbow_joint"          class="ur5e" />
+    <position name="act_wrist_1"        joint="wrist_1_joint"        class="ur5e" />
+    <position name="act_wrist_2"        joint="wrist_2_joint"        class="ur5e" />
+    <position name="act_wrist_3"        joint="wrist_3_joint"        class="ur5e" />
+  </actuator>
+
+  <!-- Joint position sensors for state feedback. -->
+  <sensor>
+    <jointpos name="s_shoulder_pan"  joint="shoulder_pan_joint" />
+    <jointpos name="s_shoulder_lift" joint="shoulder_lift_joint" />
+    <jointpos name="s_elbow"         joint="elbow_joint" />
+    <jointpos name="s_wrist_1"       joint="wrist_1_joint" />
+    <jointpos name="s_wrist_2"       joint="wrist_2_joint" />
+    <jointpos name="s_wrist_3"       joint="wrist_3_joint" />
+    <jointvel  name="s_shoulder_pan_vel"  joint="shoulder_pan_joint" />
+    <jointvel  name="s_shoulder_lift_vel" joint="shoulder_lift_joint" />
+    <jointvel  name="s_elbow_vel"         joint="elbow_joint" />
+    <jointvel  name="s_wrist_1_vel"       joint="wrist_1_joint" />
+    <jointvel  name="s_wrist_2_vel"       joint="wrist_2_joint" />
+    <jointvel  name="s_wrist_3_vel"       joint="wrist_3_joint" />
+  </sensor>
+</mujoco>

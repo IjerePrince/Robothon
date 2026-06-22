@@ -1,0 +1,22 @@
+# Disaster Triage Robothon — docker-compose.yml
+# One command:  docker compose up --build
+# This builds the image and runs the smoketest (inspect scene + step physics).
+
+services:
+  disaster-triage:
+    build: .
+    image: disaster-triage-robothon:latest
+    container_name: disaster-triage
+    stdin_open: true
+    tty: true
+    volumes:
+      # Persist generated artifacts to the host
+      - ./checkpoints:/app/checkpoints
+      - ./demos:/app/demos
+      - ./logs:/app/logs
+    environment:
+      - MUJOCO_GL=egl
+      - DISPLAY=:99
+    # Default: run smoketest then exit.  Override with:
+    #   docker compose run --rm disaster-triage python -m src.cli scripted --max-steps 500
+    command: ["xvfb-run -a python -m src.cli inspect --steps 50"]

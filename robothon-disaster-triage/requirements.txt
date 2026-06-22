@@ -1,0 +1,15 @@
+# Disaster Triage Robothon — Python dependencies
+# One-line install: pip install -r requirements.txt
+# All platforms, no GPU required.
+
+mujoco>=3.9.0
+gymnasium>=1.0.0
+stable-baselines3>=2.0.0
+torch>=2.8.0
+numpy>=1.24.0
+opencv-python-headless>=4.8.0
+imageio>=2.31.0
+imageio-ffmpeg>=0.4.9
+pyyaml>=6.0
+tqdm>=4.65.0
+matplotlib>=3.7.0

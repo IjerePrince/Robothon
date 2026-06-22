@@ -1,0 +1,681 @@
+<!--
+  scene.xml — Main scene file for the Disaster Triage Robothon project.
+
+  Combines:
+    * Floor + lighting + 4 virtual cameras (front / side / top / wrist)
+    * Workbench table
+    * UR5e 6-DOF arm (ur5e.xml fragment)
+    * Shadow Hand Lite 16-DOF dexterous hand (inline, welded to UR5e tool0)
+    * Disaster triage objects (disaster_objects.xml fragment) with equality constraints
+
+  Total robot DOF: 6 (UR5e) + 16 (Shadow Hand Lite) = 22 actuated DOF.
+
+  This file is what `python -m src.env` and all CLI entrypoints load.
+-->
+<mujoco model="disaster_triage_scene">
+  <compiler angle="radian" autolimits="true"
+            coordinate="local" inertiafromgeom="true"
+            discardvisual="false" />
+  <option timestep="0.002" integrator="implicitfast" iterations="50"
+          solver="Newton" gravity="0 0 -9.81" />
+
+  <!-- ============================================================ -->
+  <!-- DEFAULTS — class hierarchy for the whole scene               -->
+  <!-- ============================================================ -->
+  <default>
+    <joint armature="0.05" damping="0.5" limited="true" />
+    <geom condim="4" friction="1.0 0.05 0.02" rgba="0.7 0.7 0.7 1" />
+    <position kp="60" ctrlrange="-1 1" />
+    <light cutoff="45" exponent="10" directional="true" />
+    <camera fovy="55" />
+
+    <default class="ur5e">
+      <joint range="-6.28 6.28" damping="20.0" armature="0.1" frictionloss="0.05" />
+      <geom rgba="0.25 0.25 0.28 1" condim="4" friction="0.7 0.05 0.02" />
+      <position kp="2000" kv="50" forcerange="-2000 2000" ctrlrange="-6.28 6.28" />
+    </default>
+
+    <default class="shadow_finger">
+      <joint range="-1.57 1.57" damping="0.5" armature="0.005" />
+      <geom rgba="0.85 0.78 0.65 1" condim="6" friction="1.5 0.05 0.02" />
+      <position kp="30" kv="3" ctrlrange="-1.57 1.57" forcerange="-1.5 1.5" />
+    </default>
+
+    <default class="fragile">
+      <geom rgba="0.55 0.78 0.92 0.7" condim="6" friction="1.5 0.10 0.05" />
+      <joint damping="0.5" armature="0.001" />
+    </default>
+    <default class="sturdy">
+      <geom rgba="0.85 0.45 0.20 1" condim="4" friction="1.2 0.10 0.05" />
+      <joint damping="2.0" armature="0.01" />
+    </default>
+    <default class="hazardous">
+      <geom rgba="0.85 0.18 0.18 0.85" condim="6" friction="0.5 0.05 0.02" />
+      <joint damping="1.0" armature="0.005" />
+    </default>
+    <default class="soft">
+      <geom rgba="0.65 0.78 0.55 1" condim="4" friction="1.5 0.15 0.08" />
+      <joint damping="3.0" armature="0.005" />
+    </default>
+    <default class="sharp">
+      <geom rgba="0.42 0.42 0.45 1" condim="6" friction="0.9 0.05 0.02" />
+      <joint damping="1.5" armature="0.005" />
+    </default>
+
+    <default class="tactile_sensor">
+      <site group="3" rgba="0.1 0.9 0.3 0.4" size="0.006 0.006 0.006" />
+    </default>
+  </default>
+
+  <!-- ============================================================ -->
+  <!-- ASSETS — textures                                            -->
+  <!-- ============================================================ -->
+  <asset>
+    <texture name="tex_floor" type="2d" builtin="gradient"
+            rgb1="0.18 0.18 0.22" rgb2="0.32 0.32 0.36" width="256" height="256" />
+    <texture builtin="gradient" type="skybox" rgb1="0.4 0.5 0.7" rgb2="0.0 0.0 0.0"
+            width="256" height="256" />
+    <material name="mat_floor"  texture="tex_floor" specular="0.0" shininess="0.0" />
+    <material name="mat_table"  rgba="0.55 0.42 0.28 1" specular="0.2" shininess="0.3" />
+  </asset>
+
+  <visual>
+    <map fogstart="3" fogend="10" znear="0.05" zfar="50" />
+    <quality shadowsize="2048" offsamples="4" />
+    <global azimuth="-30" elevation="-20" offwidth="1280" offheight="720" />
+    <scale framewidth="0.003" />
+  </visual>
+
+  <worldbody>
+    <!-- Floor -->
+    <geom name="floor" type="plane" size="3 3 0.1" material="mat_floor"
+          condim="3" friction="0.8 0.05 0.02" />
+
+    <!-- Lights -->
+    <light name="key_light" pos="-1.5 -1.5 2.5" dir="0.4 0.4 -0.8"
+           diffuse="0.7 0.7 0.7" castshadow="true" />
+    <light name="fill_light" pos="1.5 -1.0 2.0" dir="-0.4 0.3 -0.8"
+           diffuse="0.4 0.4 0.5" castshadow="false" />
+    <light name="rim_light" pos="0 2.0 1.5" dir="0 -0.7 -0.5"
+           diffuse="0.3 0.3 0.3" castshadow="false" />
+
+    <!-- ============================================================ -->
+    <!-- VIRTUAL CAMERAS — front / side / top / wrist                 -->
+    <!-- ============================================================ -->
+    <camera name="cam_front" pos="0.9 -0.9 1.4" xyaxes="-0.7 -0.7 0 -0.5 0.5 0.7"
+            fovy="50" />
+    <camera name="cam_side"  pos="-1.0 0 1.2" xyaxes="0 -1 0 -0.7 0 0.7"
+            fovy="50" />
+    <camera name="cam_top"   pos="0 0 1.6" xyaxes="1 0 0 0 -1 0" fovy="45" />
+    <camera name="cam_wrist" pos="0 0 0" xyaxes="1 0 0 0 -1 0" fovy="60" />
+
+    <!-- ============================================================ -->
+    <!-- WORKBENCH TABLE — 1.2m × 0.8m × 0.75m                         -->
+    <!-- ============================================================ -->
+    <body name="table" pos="0 0 0.375">
+      <geom name="geom_table_top" type="box" size="0.60 0.40 0.025"
+            pos="0 0 0.375" material="mat_table" mass="15.0"
+            friction="2.0 0.20 0.10" />
+      <geom name="geom_table_leg1" type="cylinder" size="0.025 0.375"
+            pos="-0.55 -0.35 0" material="mat_table" mass="1.0" />
+      <geom name="geom_table_leg2" type="cylinder" size="0.025 0.375"
+            pos="0.55 -0.35 0" material="mat_table" mass="1.0" />
+      <geom name="geom_table_leg3" type="cylinder" size="0.025 0.375"
+            pos="-0.55 0.35 0" material="mat_table" mass="1.0" />
+      <geom name="geom_table_leg4" type="cylinder" size="0.025 0.375"
+            pos="0.55 0.35 0" material="mat_table" mass="1.0" />
+    </body>
+
+    <!-- ============================================================ -->
+    <!-- ROBOT: UR5e (6-DOF) + Shadow Hand Lite (16-DOF)               -->
+    <!-- ============================================================ -->
+    <body name="base_link" pos="0 0 0.781">
+      <inertial pos="0 0 0" mass="2.0" diaginertia="0.005 0.005 0.005" />
+      <geom name="base_geom" type="cylinder" size="0.075 0.040" rgba="0.30 0.30 0.32 1" />
+
+      <!-- Shoulder joint (z-axis, base rotation). -->
+      <body name="shoulder_link" pos="0 0 0.080">
+        <inertial pos="0 0 0" mass="2.0" diaginertia="0.008 0.008 0.008" />
+        <joint name="shoulder_pan_joint" axis="0 0 1" class="ur5e" range="-6.28 6.28" />
+        <geom name="sh_joint_geom" type="cylinder" size="0.060 0.030"
+              rgba="0.10 0.10 0.12 1" />
+        <geom name="sh_link_geom"  type="cylinder" size="0.045 0.090"
+              euler="1.5708 0 0" pos="0 0 0.060" rgba="0.18 0.36 0.55 1" />
+
+        <!-- Upper arm (y-axis, shoulder lift). -->
+        <body name="upper_arm_link" pos="0 0.135 0">
+          <inertial pos="0 0 0.140" mass="3.42" diaginertia="0.025 0.025 0.005" />
+          <joint name="shoulder_lift_joint" axis="0 1 0" class="ur5e"
+                 range="-6.28 6.28" />
+          <geom name="ua_joint_geom" type="cylinder" size="0.060 0.030"
+                euler="1.5708 0 0" rgba="0.10 0.10 0.12 1" />
+          <geom name="ua_link_geom"  type="capsule" size="0.040"
+                fromto="0 0 0 0 0 0.280" rgba="0.18 0.36 0.55 1" />
+
+          <!-- Forearm (y-axis, elbow). -->
+          <body name="forearm_link" pos="0 0 0.280">
+            <inertial pos="0 0 0.130" mass="1.26" diaginertia="0.010 0.010 0.002" />
+            <joint name="elbow_joint" axis="0 1 0" class="ur5e" range="-3.14 3.14" />
+            <geom name="fa_joint_geom" type="cylinder" size="0.060 0.025"
+                  rgba="0.10 0.10 0.12 1" />
+            <geom name="fa_link_geom"  type="capsule" size="0.035"
+                  fromto="0 0 0 0 0 0.250" rgba="0.18 0.36 0.55 1" />
+
+            <!-- Wrist 1 (x-axis). -->
+            <body name="wrist_1_link" pos="0 0 0.250">
+              <inertial pos="0 0 0" mass="0.80" diaginertia="0.002 0.002 0.002" />
+              <joint name="wrist_1_joint" axis="1 0 0" class="ur5e" range="-6.28 6.28" />
+              <geom name="w1_joint_geom" type="cylinder" size="0.045 0.025"
+                    euler="0 1.5708 0" rgba="0.10 0.10 0.12 1" />
+              <geom name="w1_link_geom"  type="cylinder" size="0.035 0.060"
+                    euler="0 1.5708 0" pos="0 0.060 0" rgba="0.30 0.30 0.32 1" />
+
+              <!-- Wrist 2 (y-axis). -->
+              <body name="wrist_2_link" pos="0 0.120 0">
+                <inertial pos="0 0 0" mass="0.80" diaginertia="0.002 0.002 0.002" />
+                <joint name="wrist_2_joint" axis="0 1 0" class="ur5e" range="-6.28 6.28" />
+                <geom name="w2_joint_geom" type="cylinder" size="0.045 0.025"
+                      rgba="0.10 0.10 0.12 1" />
+                <geom name="w2_link_geom"  type="cylinder" size="0.035 0.060"
+                      pos="0 0 0.060" rgba="0.30 0.30 0.32 1" />
+
+                <!-- Wrist 3 (x-axis) — tool flange. -->
+                <body name="wrist_3_link" pos="0 0 0.120">
+                  <inertial pos="0 0 0.040" mass="0.20"
+                            diaginertia="0.0008 0.0008 0.0008" />
+                  <joint name="wrist_3_joint" axis="1 0 0" class="ur5e"
+                         range="-6.28 6.28" />
+                  <geom name="w3_joint_geom" type="cylinder" size="0.040 0.020"
+                        euler="0 1.5708 0" rgba="0.10 0.10 0.12 1" />
+                  <geom name="w3_flange_geom" type="cylinder" size="0.025 0.020"
+                        pos="0 0 0.040" rgba="0.18 0.36 0.55 1" />
+                  <!-- Standard UR tool0 site — Shadow Hand is welded here. -->
+                  <site name="tool0" pos="0 0 0.060" size="0.015"
+                        rgba="1 0.3 0.3 0.5" group="3" />
+
+                  <!-- =================================================== -->
+                  <!-- SHADOW HAND LITE (16-DOF) — welded to UR5e flange     -->
+                  <!--   No joint = fixed weld to parent (wrist_3_link).     -->
+                  <!-- =================================================== -->
+                  <body name="palm" childclass="shadow_finger" pos="0 0 0.060">
+                    <inertial pos="0 0 0" mass="0.35" diaginertia="0.001 0.002 0.0025" />
+                    <geom name="palm_geom" type="box" size="0.045 0.030 0.012"
+                          rgba="0.92 0.86 0.74 1" condim="6" friction="1.5 0.05 0.02" />
+                    <site name="tactile_palm" class="tactile_sensor"
+                          pos="0 0.025 0.012" size="0.020 0.020 0.002" type="box" />
+
+                    <!-- THUMB (4 DOF) -->
+                    <body name="link_TH1" pos="0.045 -0.040 0.018" euler="0 30 35">
+                      <joint name="A_THJ1" type="hinge" axis="1 0 0" class="shadow_finger"
+                             range="-1.57 1.57" />
+                      <geom name="geom_link_TH1" type="capsule" fromto="0 0 0 0 0 -0.040"
+                            size="0.009" rgba="0.85 0.78 0.65 1" condim="6" />
+                      <geom name="knuckle_link_TH1" type="sphere" size="0.0095"
+                            pos="0 0 0" rgba="0.85 0.78 0.65 1" />
+                      <body name="link_TH2" pos="0 0 -0.040">
+                        <joint name="A_THJ2" type="hinge" axis="0 1 0" class="shadow_finger"
+                               range="-1.57 1.57" />
+                        <geom name="geom_link_TH2" type="capsule" fromto="0 0 0 0 0 -0.038"
+                              size="0.0085" rgba="0.85 0.78 0.65 1" condim="6" />
+                        <geom name="knuckle_link_TH2" type="sphere" size="0.009"
+                              pos="0 0 0" rgba="0.85 0.78 0.65 1" />
+                        <body name="link_TH3" pos="0 0 -0.038">
+                          <joint name="A_THJ3" type="hinge" axis="0 1 0" class="shadow_finger"
+                                 range="-1.57 1.57" />
+                          <geom name="geom_link_TH3" type="capsule" fromto="0 0 0 0 0 -0.030"
+                                size="0.008" rgba="0.85 0.78 0.65 1" condim="6" />
+                          <geom name="knuckle_link_TH3" type="sphere" size="0.0085"
+                                pos="0 0 0" rgba="0.85 0.78 0.65 1" />
+                          <body name="link_TH4" pos="0 0 -0.030">
+                            <joint name="A_THJ4" type="hinge" axis="0 1 0" class="shadow_finger"
+                                   range="-1.57 1.57" />
+                            <geom name="geom_link_TH4" type="capsule" fromto="0 0 0 0 0 -0.028"
+                                  size="0.0075" rgba="0.85 0.78 0.65 1" condim="6" />
+                            <geom name="knuckle_link_TH4" type="sphere" size="0.008"
+                                  pos="0 0 0" rgba="0.85 0.78 0.65 1" />
+                            <site name="tactile_TH" class="tactile_sensor"
+                                  pos="0 0 -0.026" size="0.008 0.008 0.004" type="box" />
+                          </body>
+                        </body>
+                      </body>
+                    </body>
+
+                    <!-- INDEX (3 DOF) -->
+                    <body name="link_IF1" pos="0.022 0.030 0.000" euler="0 0 -8">
+                      <joint name="A_IFJ1" type="hinge" axis="1 0 0" class="shadow_finger"
+                             range="-1.57 1.57" />
+                      <geom name="geom_link_IF1" type="capsule" fromto="0 0 0 0 0 0.040"
+                            size="0.008" rgba="0.85 0.78 0.65 1" condim="6" />
+                      <geom name="knuckle_link_IF1" type="sphere" size="0.0085"
+                            pos="0 0 0" rgba="0.85 0.78 0.65 1" />
+                      <body name="link_IF2" pos="0 0 0.040">
+                        <joint name="A_IFJ2" type="hinge" axis="0 1 0" class="shadow_finger"
+                               range="-1.57 1.57" />
+                        <geom name="geom_link_IF2" type="capsule" fromto="0 0 0 0 0 0.035"
+                              size="0.0075" rgba="0.85 0.78 0.65 1" condim="6" />
+                        <geom name="knuckle_link_IF2" type="sphere" size="0.008"
+                              pos="0 0 0" rgba="0.85 0.78 0.65 1" />
+                        <body name="link_IF3" pos="0 0 0.035">
+                          <joint name="A_IFJ3" type="hinge" axis="0 1 0" class="shadow_finger"
+                                 range="-1.57 1.57" />
+                          <geom name="geom_link_IF3" type="capsule" fromto="0 0 0 0 0 0.028"
+                                size="0.007" rgba="0.85 0.78 0.65 1" condim="6" />
+                          <geom name="knuckle_link_IF3" type="sphere" size="0.0075"
+                                pos="0 0 0" rgba="0.85 0.78 0.65 1" />
+                          <site name="tactile_IF" class="tactile_sensor"
+                                pos="0 0 0.026" size="0.008 0.008 0.004" type="box" />
+                        </body>
+                      </body>
+                    </body>
+
+                    <!-- MIDDLE (3 DOF) -->
+                    <body name="link_MF1" pos="0.005 0.034 0.000" euler="0 0 0">
+                      <joint name="A_MFJ1" type="hinge" axis="1 0 0" class="shadow_finger"
+                             range="-1.57 1.57" />
+                      <geom name="geom_link_MF1" type="capsule" fromto="0 0 0 0 0 0.042"
+                            size="0.008" rgba="0.85 0.78 0.65 1" condim="6" />
+                      <geom name="knuckle_link_MF1" type="sphere" size="0.0085"
+                            pos="0 0 0" rgba="0.85 0.78 0.65 1" />
+                      <body name="link_MF2" pos="0 0 0.042">
+                        <joint name="A_MFJ2" type="hinge" axis="0 1 0" class="shadow_finger"
+                               range="-1.57 1.57" />
+                        <geom name="geom_link_MF2" type="capsule" fromto="0 0 0 0 0 0.036"
+                              size="0.0075" rgba="0.85 0.78 0.65 1" condim="6" />
+                        <geom name="knuckle_link_MF2" type="sphere" size="0.008"
+                              pos="0 0 0" rgba="0.85 0.78 0.65 1" />
+                        <body name="link_MF3" pos="0 0 0.036">
+                          <joint name="A_MFJ3" type="hinge" axis="0 1 0" class="shadow_finger"
+                                 range="-1.57 1.57" />
+                          <geom name="geom_link_MF3" type="capsule" fromto="0 0 0 0 0 0.028"
+                                size="0.007" rgba="0.85 0.78 0.65 1" condim="6" />
+                          <geom name="knuckle_link_MF3" type="sphere" size="0.0075"
+                                pos="0 0 0" rgba="0.85 0.78 0.65 1" />
+                          <site name="tactile_MF" class="tactile_sensor"
+                                pos="0 0 0.026" size="0.008 0.008 0.004" type="box" />
+                        </body>
+                      </body>
+                    </body>
+
+                    <!-- RING (3 DOF) -->
+                    <body name="link_RF1" pos="-0.012 0.030 0.000" euler="0 0 8">
+                      <joint name="A_RFJ1" type="hinge" axis="1 0 0" class="shadow_finger"
+                             range="-1.57 1.57" />
+                      <geom name="geom_link_RF1" type="capsule" fromto="0 0 0 0 0 0.038"
+                            size="0.0075" rgba="0.85 0.78 0.65 1" condim="6" />
+                      <geom name="knuckle_link_RF1" type="sphere" size="0.008"
+                            pos="0 0 0" rgba="0.85 0.78 0.65 1" />
+                      <body name="link_RF2" pos="0 0 0.038">
+                        <joint name="A_RFJ2" type="hinge" axis="0 1 0" class="shadow_finger"
+                               range="-1.57 1.57" />
+                        <geom name="geom_link_RF2" type="capsule" fromto="0 0 0 0 0 0.032"
+                              size="0.007" rgba="0.85 0.78 0.65 1" condim="6" />
+                        <geom name="knuckle_link_RF2" type="sphere" size="0.0075"
+                              pos="0 0 0" rgba="0.85 0.78 0.65 1" />
+                        <body name="link_RF3" pos="0 0 0.032">
+                          <joint name="A_RFJ3" type="hinge" axis="0 1 0" class="shadow_finger"
+                                 range="-1.57 1.57" />
+                          <geom name="geom_link_RF3" type="capsule" fromto="0 0 0 0 0 0.026"
+                                size="0.0065" rgba="0.85 0.78 0.65 1" condim="6" />
+                          <geom name="knuckle_link_RF3" type="sphere" size="0.007"
+                                pos="0 0 0" rgba="0.85 0.78 0.65 1" />
+                          <site name="tactile_RF" class="tactile_sensor"
+                                pos="0 0 0.024" size="0.008 0.008 0.004" type="box" />
+                        </body>
+                      </body>
+                    </body>
+
+                    <!-- LITTLE (3 DOF) -->
+                    <body name="link_LF1" pos="-0.034 0.024 0.000" euler="0 0 18">
+                      <joint name="A_LFJ1" type="hinge" axis="1 0 0" class="shadow_finger"
+                             range="-1.57 1.57" />
+                      <geom name="geom_link_LF1" type="capsule" fromto="0 0 0 0 0 0.034"
+                            size="0.007" rgba="0.85 0.78 0.65 1" condim="6" />
+                      <geom name="knuckle_link_LF1" type="sphere" size="0.0075"
+                            pos="0 0 0" rgba="0.85 0.78 0.65 1" />
+                      <body name="link_LF2" pos="0 0 0.034">
+                        <joint name="A_LFJ2" type="hinge" axis="0 1 0" class="shadow_finger"
+                               range="-1.57 1.57" />
+                        <geom name="geom_link_LF2" type="capsule" fromto="0 0 0 0 0 0.028"
+                              size="0.0065" rgba="0.85 0.78 0.65 1" condim="6" />
+                        <geom name="knuckle_link_LF2" type="sphere" size="0.007"
+                              pos="0 0 0" rgba="0.85 0.78 0.65 1" />
+                        <body name="link_LF3" pos="0 0 0.028">
+                          <joint name="A_LFJ3" type="hinge" axis="0 1 0" class="shadow_finger"
+                                 range="-1.57 1.57" />
+                          <geom name="geom_link_LF3" type="capsule" fromto="0 0 0 0 0 0.024"
+                                size="0.006" rgba="0.85 0.78 0.65 1" condim="6" />
+                          <geom name="knuckle_link_LF3" type="sphere" size="0.0065"
+                                pos="0 0 0" rgba="0.85 0.78 0.65 1" />
+                          <site name="tactile_LF" class="tactile_sensor"
+                                pos="0 0 0.022" size="0.008 0.008 0.004" type="box" />
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <!-- ============================================================ -->
+    <!-- DISASTER TRIAGE OBJECTS (objects, bins, container with lid)  -->
+    <!-- ============================================================ -->
+
+    <!-- OBJECT 1: Fragile glass vial (free rigid body, like other objects) -->
+    <body name="obj_glass" pos="-0.30 0.10 0.825">
+      <freejoint name="free_glass" />
+      <inertial pos="0 0 0.05" mass="0.50" diaginertia="2e-3 2e-3 1e-3" />
+      <geom name="geom_obj_glass" type="cylinder"
+            size="0.030 0.050" rgba="0.55 0.78 0.92 0.7" class="fragile" />
+      <geom name="geom_obj_glass_cap" type="cylinder"
+            size="0.032 0.006" pos="0 0 0.056" rgba="0.55 0.78 0.92 0.7"
+            class="fragile" />
+      <site name="label_glass" pos="0 0 0.050" size="0.015"
+           rgba="0.55 0.78 0.92 0.6" group="3" />
+    </body>
+
+    <!-- OBJECT 2: Sturdy metal can -->
+    <body name="obj_can" pos="-0.15 0.10 0.830">
+      <freejoint name="free_can" />
+      <inertial pos="0 0 0.045" mass="1.00" diaginertia="5e-3 5e-3 2e-3" />
+      <geom name="geom_obj_can" type="cylinder"
+            size="0.032 0.055" rgba="0.85 0.45 0.20 1" class="sturdy" />
+      <geom name="geom_obj_can_top" type="cylinder"
+            size="0.034 0.005" pos="0 0 0.060" rgba="0.85 0.45 0.20 1"
+            class="sturdy" />
+      <site name="label_can" pos="0 0 0.055" size="0.015"
+           rgba="0.85 0.45 0.20 0.6" group="3" />
+    </body>
+
+    <!-- OBJECT 3: Hazardous chemical vial -->
+    <body name="obj_vial" pos="0.0 0.10 0.805">
+      <freejoint name="free_vial" />
+      <inertial pos="0 0 0.030" mass="0.40" diaginertia="1e-3 1e-3 5e-4" />
+      <geom name="geom_obj_vial_body" type="cylinder"
+            size="0.014 0.030" rgba="0.85 0.18 0.18 0.85" class="hazardous" />
+      <geom name="geom_obj_vial_cap" type="cylinder"
+            size="0.015 0.005" pos="0 0 0.035" rgba="0.30 0.10 0.10 1"
+            class="hazardous" />
+      <site name="label_vial" pos="0 0 0.030" size="0.012"
+           rgba="0.85 0.18 0.18 0.8" group="3" />
+    </body>
+
+    <!-- OBJECT 4: Soft plush toy -->
+    <body name="obj_toy" pos="0.15 0.10 0.800">
+      <freejoint name="free_toy" />
+      <inertial pos="0 0 0.025" mass="0.30" diaginertia="1e-3 1e-3 5e-4" />
+      <geom name="geom_obj_toy_body" type="box"
+            size="0.030 0.025 0.025" rgba="0.65 0.78 0.55 1" class="soft" />
+      <geom name="geom_obj_toy_head" type="sphere"
+            size="0.020" pos="0 0 0.045" rgba="0.65 0.78 0.55 1" class="soft" />
+      <site name="label_toy" pos="0 0 0.025" size="0.012"
+           rgba="0.65 0.78 0.55 0.7" group="3" />
+    </body>
+
+    <!-- OBJECT 5: Sharp broken tool -->
+    <body name="obj_tool" pos="0.30 0.10 0.820">
+      <freejoint name="free_tool" />
+      <inertial pos="0 0 0.020" mass="0.60" diaginertia="2e-3 2e-3 1e-3" />
+      <geom name="geom_obj_tool_handle" type="cylinder"
+            size="0.012 0.045" pos="0 0 0.020" rgba="0.42 0.42 0.45 1" class="sharp" />
+      <geom name="geom_obj_tool_blade" type="box"
+            size="0.020 0.003 0.025" pos="0 0 0.075" rgba="0.42 0.42 0.45 1"
+            class="sharp" />
+      <site name="label_tool" pos="0 0 0.020" size="0.012"
+           rgba="0.42 0.42 0.45 0.7" group="3" />
+    </body>
+
+    <!-- TRIAGE BIN: Fragile (green) -->
+    <body name="bin_fragile" pos="-0.30 -0.20 0.720">
+      <geom name="geom_bin_fragile" type="box" size="0.060 0.060 0.060"
+            rgba="0.25 0.65 0.35 0.85" mass="2.0" />
+      <geom name="geom_bin_fragile_wall1" type="box" size="0.062 0.005 0.065"
+            pos="0 0.058 0" rgba="0.20 0.50 0.25 1" mass="0.5" />
+      <geom name="geom_bin_fragile_wall2" type="box" size="0.062 0.005 0.065"
+            pos="0 -0.058 0" rgba="0.20 0.50 0.25 1" mass="0.5" />
+      <geom name="geom_bin_fragile_wall3" type="box" size="0.005 0.062 0.065"
+            pos="0.058 0 0" rgba="0.20 0.50 0.25 1" mass="0.5" />
+      <geom name="geom_bin_fragile_wall4" type="box" size="0.005 0.062 0.065"
+            pos="-0.058 0 0" rgba="0.20 0.50 0.25 1" mass="0.5" />
+      <site name="bin_fragile_target" pos="0 0 0.060" size="0.040"
+           rgba="0.25 0.65 0.35 0.4" group="3" type="box" />
+    </body>
+
+    <!-- TRIAGE BIN: Sturdy (yellow) -->
+    <body name="bin_sturdy" pos="0.0 -0.20 0.720">
+      <geom name="geom_bin_sturdy" type="box" size="0.060 0.060 0.060"
+            rgba="0.70 0.65 0.25 0.85" mass="2.0" />
+      <geom name="geom_bin_sturdy_wall1" type="box" size="0.062 0.005 0.065"
+            pos="0 0.058 0" rgba="0.55 0.50 0.20 1" mass="0.5" />
+      <geom name="geom_bin_sturdy_wall2" type="box" size="0.062 0.005 0.065"
+            pos="0 -0.058 0" rgba="0.55 0.50 0.20 1" mass="0.5" />
+      <geom name="geom_bin_sturdy_wall3" type="box" size="0.005 0.062 0.065"
+            pos="0.058 0 0" rgba="0.55 0.50 0.20 1" mass="0.5" />
+      <geom name="geom_bin_sturdy_wall4" type="box" size="0.005 0.062 0.065"
+            pos="-0.058 0 0" rgba="0.55 0.50 0.20 1" mass="0.5" />
+      <site name="bin_sturdy_target" pos="0 0 0.060" size="0.040"
+           rgba="0.70 0.65 0.25 0.4" group="3" type="box" />
+    </body>
+
+    <!-- TRIAGE BIN: Hazardous (red) -->
+    <body name="bin_hazardous" pos="0.30 -0.20 0.720">
+      <geom name="geom_bin_hazardous" type="box" size="0.060 0.060 0.060"
+            rgba="0.65 0.25 0.25 0.85" mass="2.0" />
+      <geom name="geom_bin_hazardous_wall1" type="box" size="0.062 0.005 0.065"
+            pos="0 0.058 0" rgba="0.50 0.20 0.20 1" mass="0.5" />
+      <geom name="geom_bin_hazardous_wall2" type="box" size="0.062 0.005 0.065"
+            pos="0 -0.058 0" rgba="0.50 0.20 0.20 1" mass="0.5" />
+      <geom name="geom_bin_hazardous_wall3" type="box" size="0.005 0.062 0.065"
+            pos="0.058 0 0" rgba="0.50 0.20 0.20 1" mass="0.5" />
+      <geom name="geom_bin_hazardous_wall4" type="box" size="0.005 0.062 0.065"
+            pos="-0.058 0 0" rgba="0.50 0.20 0.20 1" mass="0.5" />
+      <site name="bin_hazardous_target" pos="0 0 0.060" size="0.040"
+           rgba="0.65 0.25 0.25 0.4" group="3" type="box" />
+    </body>
+
+    <!-- EQUALITY CONSTRAINT DEMO: Hinged lid on a small container -->
+    <body name="container_base" pos="0.40 0.10 0.790">
+      <geom name="geom_container_base" type="box" size="0.040 0.040 0.015"
+            rgba="0.18 0.18 0.20 1" mass="0.5" />
+    </body>
+    <body name="container_lid" pos="0.40 0.10 0.825">
+      <joint name="lid_hinge" type="hinge" axis="1 0 0"
+             range="-0.05 1.57" damping="0.5" />
+      <geom name="geom_container_lid" type="box" size="0.040 0.040 0.005"
+            rgba="0.18 0.18 0.20 1" mass="0.10" pos="0 -0.040 0" />
+      <site name="lid_snap_target" pos="0 -0.040 0.005" size="0.008"
+           rgba="1 1 0 0.5" group="3" />
+    </body>
+  </worldbody>
+
+  <!-- ============================================================ -->
+  <!-- ACTUATORS — UR5e (6) + Shadow Hand Lite (16) = 22 total       -->
+  <!-- ============================================================ -->
+  <actuator>
+    <position name="act_shoulder_pan"   joint="shoulder_pan_joint"   class="ur5e" />
+    <position name="act_shoulder_lift"  joint="shoulder_lift_joint"  class="ur5e" />
+    <position name="act_elbow"          joint="elbow_joint"          class="ur5e" />
+    <position name="act_wrist_1"        joint="wrist_1_joint"        class="ur5e" />
+    <position name="act_wrist_2"        joint="wrist_2_joint"        class="ur5e" />
+    <position name="act_wrist_3"        joint="wrist_3_joint"        class="ur5e" />
+    <position name="act_THJ1" joint="A_THJ1" class="shadow_finger"
+              kp="30" kv="3" ctrlrange="-1.57 1.57" forcerange="-1.5 1.5" />
+    <position name="act_THJ2" joint="A_THJ2" class="shadow_finger"
+              kp="30" kv="3" ctrlrange="-1.57 1.57" forcerange="-1.5 1.5" />
+    <position name="act_THJ3" joint="A_THJ3" class="shadow_finger"
+              kp="30" kv="3" ctrlrange="-1.57 1.57" forcerange="-1.5 1.5" />
+    <position name="act_THJ4" joint="A_THJ4" class="shadow_finger"
+              kp="30" kv="3" ctrlrange="-1.57 1.57" forcerange="-1.5 1.5" />
+    <position name="act_IFJ1" joint="A_IFJ1" class="shadow_finger"
+              kp="30" kv="3" ctrlrange="-1.57 1.57" forcerange="-1.5 1.5" />
+    <position name="act_IFJ2" joint="A_IFJ2" class="shadow_finger"
+              kp="30" kv="3" ctrlrange="-1.57 1.57" forcerange="-1.5 1.5" />
+    <position name="act_IFJ3" joint="A_IFJ3" class="shadow_finger"
+              kp="30" kv="3" ctrlrange="-1.57 1.57" forcerange="-1.5 1.5" />
+    <position name="act_MFJ1" joint="A_MFJ1" class="shadow_finger"
+              kp="30" kv="3" ctrlrange="-1.57 1.57" forcerange="-1.5 1.5" />
+    <position name="act_MFJ2" joint="A_MFJ2" class="shadow_finger"
+              kp="30" kv="3" ctrlrange="-1.57 1.57" forcerange="-1.5 1.5" />
+    <position name="act_MFJ3" joint="A_MFJ3" class="shadow_finger"
+              kp="30" kv="3" ctrlrange="-1.57 1.57" forcerange="-1.5 1.5" />
+    <position name="act_RFJ1" joint="A_RFJ1" class="shadow_finger"
+              kp="30" kv="3" ctrlrange="-1.57 1.57" forcerange="-1.5 1.5" />
+    <position name="act_RFJ2" joint="A_RFJ2" class="shadow_finger"
+              kp="30" kv="3" ctrlrange="-1.57 1.57" forcerange="-1.5 1.5" />
+    <position name="act_RFJ3" joint="A_RFJ3" class="shadow_finger"
+              kp="30" kv="3" ctrlrange="-1.57 1.57" forcerange="-1.5 1.5" />
+    <position name="act_LFJ1" joint="A_LFJ1" class="shadow_finger"
+              kp="30" kv="3" ctrlrange="-1.57 1.57" forcerange="-1.5 1.5" />
+    <position name="act_LFJ2" joint="A_LFJ2" class="shadow_finger"
+              kp="30" kv="3" ctrlrange="-1.57 1.57" forcerange="-1.5 1.5" />
+    <position name="act_LFJ3" joint="A_LFJ3" class="shadow_finger"
+              kp="30" kv="3" ctrlrange="-1.57 1.57" forcerange="-1.5 1.5" />
+  </actuator>
+
+  <!-- ============================================================ -->
+  <!-- SENSORS                                                       -->
+  <!-- ============================================================ -->
+  <sensor>
+    <!-- Tactile sensors (5 fingertip + 1 palm) -->
+    <touch name="s_tactile_TH"   site="tactile_TH" />
+    <touch name="s_tactile_IF"   site="tactile_IF" />
+    <touch name="s_tactile_MF"   site="tactile_MF" />
+    <touch name="s_tactile_RF"   site="tactile_RF" />
+    <touch name="s_tactile_LF"   site="tactile_LF" />
+    <touch name="s_tactile_palm" site="tactile_palm" />
+
+    <!-- UR5e joint positions & velocities -->
+    <jointpos name="s_shoulder_pan"  joint="shoulder_pan_joint" />
+    <jointpos name="s_shoulder_lift" joint="shoulder_lift_joint" />
+    <jointpos name="s_elbow"         joint="elbow_joint" />
+    <jointpos name="s_wrist_1"       joint="wrist_1_joint" />
+    <jointpos name="s_wrist_2"       joint="wrist_2_joint" />
+    <jointpos name="s_wrist_3"       joint="wrist_3_joint" />
+    <jointvel  name="s_shoulder_pan_vel"  joint="shoulder_pan_joint" />
+    <jointvel  name="s_shoulder_lift_vel" joint="shoulder_lift_joint" />
+    <jointvel  name="s_elbow_vel"         joint="elbow_joint" />
+    <jointvel  name="s_wrist_1_vel"       joint="wrist_1_joint" />
+    <jointvel  name="s_wrist_2_vel"       joint="wrist_2_joint" />
+    <jointvel  name="s_wrist_3_vel"       joint="wrist_3_joint" />
+
+    <!-- Shadow Hand joint positions -->
+    <jointpos name="s_THJ1" joint="A_THJ1" />
+    <jointpos name="s_THJ2" joint="A_THJ2" />
+    <jointpos name="s_THJ3" joint="A_THJ3" />
+    <jointpos name="s_THJ4" joint="A_THJ4" />
+    <jointpos name="s_IFJ1" joint="A_IFJ1" />
+    <jointpos name="s_IFJ2" joint="A_IFJ2" />
+    <jointpos name="s_IFJ3" joint="A_IFJ3" />
+    <jointpos name="s_MFJ1" joint="A_MFJ1" />
+    <jointpos name="s_MFJ2" joint="A_MFJ2" />
+    <jointpos name="s_MFJ3" joint="A_MFJ3" />
+    <jointpos name="s_RFJ1" joint="A_RFJ1" />
+    <jointpos name="s_RFJ2" joint="A_RFJ2" />
+    <jointpos name="s_RFJ3" joint="A_RFJ3" />
+    <jointpos name="s_LFJ1" joint="A_LFJ1" />
+    <jointpos name="s_LFJ2" joint="A_LFJ2" />
+    <jointpos name="s_LFJ3" joint="A_LFJ3" />
+
+    <!-- Frame positions for task state inference -->
+    <framepos name="s_obj_glass_pos" objtype="body" objname="obj_glass" />
+    <framepos name="s_obj_can_pos"   objtype="body" objname="obj_can" />
+    <framepos name="s_obj_vial_pos"  objtype="body" objname="obj_vial" />
+    <framepos name="s_obj_toy_pos"   objtype="body" objname="obj_toy" />
+    <framepos name="s_obj_tool_pos"  objtype="body" objname="obj_tool" />
+    <framepos name="s_palm_pos"      objtype="body" objname="palm" />
+    <framequat name="s_palm_quat"    objtype="body" objname="palm" />
+  </sensor>
+
+  <!-- ============================================================ -->
+  <!-- EQUALITY CONSTRAINTS                                          -->
+  <!--   1. Lid pivot: lid rotates around the container base edge.   -->
+  <!--   2. Hand-to-glass weld: activates when the robot grasps the  -->
+  <!--      glass vial, releasing the track constraint.              -->
+  <!-- ============================================================ -->
+    <equality>
+    <connect name="eq_lid_pivot" active="true"
+             body1="container_base" body2="container_lid"
+             anchor="0.40 0.060 0.825" />
+    <weld name="eq_hand_to_glass" active="false"
+          body1="palm" body2="obj_glass"
+          relpose="0 0 0 1 0 0 0" />
+    </equality>
+
+  <!-- ============================================================ -->
+  <!-- CONTACT EXCLUSIONS                                            -->
+  <!--   Explicitly disable contacts between adjacent UR5e links     -->
+  <!--   (parent-child default filtering handles direct parent-child -->
+  <!--    but not the 2-3 link away contacts that fold back).        -->
+  <!--   Also exclude hand <-> forearm, hand <-> wrist collisions    -->
+  <!--   that would otherwise fire during finger motion.             -->
+  <!-- ============================================================ -->
+  <contact>
+    <exclude body1="base_link"        body2="shoulder_link" />
+    <exclude body1="shoulder_link"    body2="upper_arm_link" />
+    <exclude body1="upper_arm_link"   body2="forearm_link" />
+    <exclude body1="forearm_link"     body2="wrist_1_link" />
+    <exclude body1="wrist_1_link"     body2="wrist_2_link" />
+    <exclude body1="wrist_2_link"     body2="wrist_3_link" />
+    <exclude body1="wrist_3_link"     body2="palm" />
+    <exclude body1="forearm_link"     body2="palm" />
+    <exclude body1="forearm_link"     body2="link_TH1" />
+    <exclude body1="forearm_link"     body2="link_TH2" />
+    <exclude body1="forearm_link"     body2="link_TH3" />
+    <exclude body1="forearm_link"     body2="link_TH4" />
+    <exclude body1="forearm_link"     body2="link_IF1" />
+    <exclude body1="forearm_link"     body2="link_IF2" />
+    <exclude body1="forearm_link"     body2="link_IF3" />
+    <exclude body1="forearm_link"     body2="link_MF1" />
+    <exclude body1="forearm_link"     body2="link_MF2" />
+    <exclude body1="forearm_link"     body2="link_MF3" />
+    <exclude body1="forearm_link"     body2="link_RF1" />
+    <exclude body1="forearm_link"     body2="link_RF2" />
+    <exclude body1="forearm_link"     body2="link_RF3" />
+    <exclude body1="forearm_link"     body2="link_LF1" />
+    <exclude body1="forearm_link"     body2="link_LF2" />
+    <exclude body1="forearm_link"     body2="link_LF3" />
+    <exclude body1="wrist_3_link"     body2="link_TH1" />
+    <exclude body1="wrist_3_link"     body2="link_IF1" />
+    <exclude body1="wrist_3_link"     body2="link_MF1" />
+    <exclude body1="wrist_3_link"     body2="link_RF1" />
+    <exclude body1="wrist_3_link"     body2="link_LF1" />
+    <!-- Exclude forearm <-> table contact so the arm can reach low
+         positions without the forearm cylinder hitting the table edge -->
+    <exclude body1="forearm_link"     body2="table" />
+    <exclude body1="upper_arm_link"   body2="table" />
+    <!-- Exclude arm <-> object collisions.  This is standard practice in
+         RL benchmarks (robosuite, gym-grasping): the arm passes through
+         objects (no collision) and the "grasp" is detected by tactile
+         sensors / kinematic attachment, not by physical finger contact.
+         Without this, the large forearm cylinder sweeps objects off the
+         table when the arm reaches down. -->
+    <exclude body1="base_link"       body2="obj_glass" />
+    <exclude body1="base_link"       body2="obj_can" />
+    <exclude body1="base_link"       body2="obj_vial" />
+    <exclude body1="base_link"       body2="obj_toy" />
+    <exclude body1="base_link"       body2="obj_tool" />
+    <exclude body1="shoulder_link"   body2="obj_glass" />
+    <exclude body1="shoulder_link"   body2="obj_can" />
+    <exclude body1="shoulder_link"   body2="obj_vial" />
+    <exclude body1="shoulder_link"   body2="obj_toy" />
+    <exclude body1="shoulder_link"   body2="obj_tool" />
+    <exclude body1="upper_arm_link"  body2="obj_glass" />
+    <exclude body1="upper_arm_link"  body2="obj_can" />
+    <exclude body1="upper_arm_link"  body2="obj_vial" />
+    <exclude body1="upper_arm_link"  body2="obj_toy" />
+    <exclude body1="upper_arm_link"  body2="obj_tool" />
+    <exclude body1="forearm_link"    body2="obj_glass" />
+    <exclude body1="forearm_link"    body2="obj_can" />
+    <exclude body1="forearm_link"    body2="obj_vial" />
+    <exclude body1="forearm_link"    body2="obj_toy" />
+    <exclude body1="forearm_link"    body2="obj_tool" />
+    <exclude body1="wrist_1_link"    body2="obj_glass" />
+    <exclude body1="wrist_1_link"    body2="obj_can" />
+    <exclude body1="wrist_1_link"    body2="obj_vial" />
+    <exclude body1="wrist_1_link"    body2="obj_toy" />
+    <exclude body1="wrist_1_link"    body2="obj_tool" />
+  </contact>
+</mujoco>

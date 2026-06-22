@@ -1,0 +1,79 @@
+# Disaster Triage Robothon — pyproject.toml
+# Defines the Python package metadata so `pip install -e .` works.
+
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "disaster-triage-robothon"
+version = "1.0.0"
+description = "MuJoCo-based disaster-response object triage simulator with a 22-DOF UR5e + Shadow Hand Lite robot."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Disaster Triage Robothon Team"},
+]
+keywords = ["mujoco", "robotics", "dexterous-manipulation", "reinforcement-learning", "tactile-sensing"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "mujoco>=3.9.0",
+    "gymnasium>=1.0.0",
+    "stable-baselines3>=2.0.0",
+    "torch>=2.8.0",
+    "numpy>=1.24.0",
+    "opencv-python-headless>=4.8.0",
+    "imageio>=2.31.0",
+    "imageio-ffmpeg>=0.4.9",
+    "pyyaml>=6.0",
+    "tqdm>=4.65.0",
+    "matplotlib>=3.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "black>=23.0",
+    "ruff>=0.1.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/anonymous/disaster-triage-robothon"
+"Documentation" = "https://github.com/anonymous/disaster-triage-robothon/blob/main/README.md"
+"Source" = "https://github.com/anonymous/disaster-triage-robothon"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+exclude = ["tests*", "demos*", "checkpoints*"]
+
+[tool.setuptools.package-data]
+"src" = ["*.yaml", "*.xml"]
+
+[tool.black]
+line-length = 100
+target-version = ['py310', 'py311', 'py312']
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]  # line length handled by black
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

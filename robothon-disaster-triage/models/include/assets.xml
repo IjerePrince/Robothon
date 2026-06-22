@@ -1,0 +1,63 @@
+<!--
+  assets.xml — Shared assets: materials, default classes, meshes.
+  This file is <include>'d by every other MJCF so that materials and
+  defaults remain consistent across the scene, robot, and objects.
+
+  All visual meshes use MuJoCo primitives (capsule / cylinder / box / sphere)
+  so the project is fully self-contained — no external STL downloads required.
+-->
+<mujoco model="disaster_triage_assets">
+  <!-- ============================================================ -->
+  <!-- DEFAULTS — physics & visual class hierarchy                  -->
+  <!-- ============================================================ -->
+  <default>
+    <joint armature="0.05" damping="0.5" limited="true" />
+    <geom condim="4" friction="1.0 0.05 0.02" rgba="0.7 0.7 0.7 1" />
+    <position kp="60" ctrlrange="-1 1" />
+    <default class="robot">
+      <joint damping="2.0" armature="0.05" />
+      <geom rgba="0.65 0.65 0.7 1" condim="4" friction="1.0 0.05 0.02" />
+    </default>
+    <default class="ur5e">
+      <joint range="-6.28 6.28" damping="5.0" armature="0.1" />
+      <geom rgba="0.25 0.25 0.28 1" />
+      <position kp="200" />
+    </default>
+    <default class="shadow_finger">
+      <joint range="-1.57 1.57" damping="0.3" armature="0.005" />
+      <geom rgba="0.85 0.78 0.65 1" condim="6" friction="1.5 0.05 0.02" />
+      <position kp="40" />
+    </default>
+    <default class="object">
+      <geom condim="4" friction="0.7 0.05 0.02" />
+    </default>
+    <default class="debris">
+      <geom condim="3" friction="0.8 0.05 0.02" rgba="0.4 0.35 0.3 1" />
+    </default>
+    <default class="tactile_sensor">
+      <site group="3" rgba="0.1 0.9 0.3 0.4" size="0.006 0.006 0.006" />
+    </default>
+  </default>
+
+  <!-- ============================================================ -->
+  <!-- MATERIALS                                                    -->
+  <!-- ============================================================ -->
+  <asset>
+    <material name="mat_floor"   texture="tex_floor"  specular="0.0" shininess="0.0" />
+    <material name="mat_table"   rgba="0.55 0.42 0.28 1" specular="0.2" shininess="0.3" />
+    <material name="mat_metal"   rgba="0.30 0.30 0.32 1" specular="0.85" shininess="0.9" />
+    <material name="mat_dark"    rgba="0.18 0.18 0.20 1" specular="0.5" shininess="0.6" />
+    <material name="mat_hand"    rgba="0.92 0.86 0.74 1" specular="0.4" shininess="0.5" />
+    <material name="mat_fragile" rgba="0.55 0.78 0.92 0.7" specular="0.9" shininess="0.9" />
+    <material name="mat_sturdy"  rgba="0.85 0.45 0.20 1" specular="0.7" shininess="0.7" />
+    <material name="mat_hazard"  rgba="0.85 0.18 0.18 0.85" specular="0.8" shininess="0.8" />
+    <material name="mat_soft"    rgba="0.65 0.78 0.55 1" specular="0.1" shininess="0.1" />
+    <material name="mat_sharp"   rgba="0.42 0.42 0.45 1" specular="0.7" shininess="0.6" />
+    <material name="mat_bin_a"   rgba="0.25 0.65 0.35 0.85" />
+    <material name="mat_bin_b"   rgba="0.70 0.65 0.25 0.85" />
+    <material name="mat_bin_c"   rgba="0.65 0.25 0.25 0.85" />
+
+    <texture name="tex_floor" type="2d" builtin="gradient"
+            rgb1="0.18 0.18 0.22" rgb2="0.32 0.32 0.36" width="256" height="256" />
+  </asset>
+</mujoco>

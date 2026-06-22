@@ -20,7 +20,7 @@ except ImportError as exc:
 
 
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_MODEL = ROOT / "assets" / "Master" / "scene.xml"
+DEFAULT_MODEL = ROOT / "assets" / "Master" / "aegis_vanguard.xml"
 DEFAULT_OUTPUT = ROOT / "outputs" / "ff_master_demo.mp4"
 DEFAULT_TRAJECTORY = ROOT / "outputs" / "ff_master_trajectory.json"
 

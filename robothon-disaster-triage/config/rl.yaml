@@ -1,0 +1,67 @@
+# rl.yaml — RL training hyperparameters
+# Used by src/rl_train.py
+
+ppo:
+  # Policy network architecture
+  policy: MlpPolicy
+  policy_kwargs:
+    net_arch:
+      pi: [256, 256]
+      vf: [256, 256]
+
+  # Optimisation
+  learning_rate: 3.0e-4
+  n_steps: 2048           # rollout buffer size per env
+  batch_size: 64
+  n_epochs: 10
+
+  # GAE / value function
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_range: 0.2
+  ent_coef: 0.01
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+
+  # Misc
+  seed: 42
+  device: auto            # uses CPU in this no-GPU project
+
+# Training schedule
+training:
+  total_timesteps: 200_000
+  n_envs: 4
+  eval_freq: 10_000
+  n_eval_episodes: 3
+
+# Curriculum (3 stages by total_timesteps progress)
+curriculum:
+  stages:
+    - { progress: 0.0,  n_objects: 1 }   # first 20%: only glass (fragile)
+    - { progress: 0.20, n_objects: 3 }   # 20-50%: glass + can + vial
+    - { progress: 0.50, n_objects: 5 }   # 50-100%: all 5 objects
+
+# VecNormalize
+vec_normalize:
+  norm_obs: true
+  norm_reward: true
+  clip_obs: 10.0
+
+# Checkpointing
+checkpoint:
+  save_dir: checkpoints/
+  name_prefix: ppo_disaster_triage
+  final_name: ppo_disaster_triage.zip
+
+# Reward shaping (per-class force targets in Newtons)
+reward:
+  approach_bonus: 0.5
+  contact_bonus: 0.1
+  grasp_bonus: 2.0
+  placement_bonus: 5.0
+  success_bonus: 10.0
+  step_penalty: -0.01
+  action_penalty: -0.001
+  fragile_break_penalty: -5.0
+  fragile_break_force_N: 8.0
+  fragile_break_steps: 10

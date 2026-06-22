@@ -1,0 +1,135 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mujoco model="shadow_hand_lite">
+  <compiler angle="radian" autolimits="true" meshdir="meshes/shadow_hand" discardvisual="false" />
+  <option timestep="0.002" integrator="implicitfast" iterations="50" solver="Newton" />
+  <default>
+    <joint damping="0.3" armature="0.005" limited="true" />
+    <geom condim="6" friction="1.5 0.05 0.02" rgba="0.85 0.78 0.65 1" />
+    <default class="shadow_finger">
+      <joint range="-1.57 1.57" damping="0.3" armature="0.005" />
+      <position kp="40" ctrlrange="-1.57 1.57" />
+      <geom condim="6" friction="1.5 0.05 0.02" rgba="0.85 0.78 0.65 1" />
+    </default>
+    <default class="tactile_sensor">
+      <site group="3" rgba="0.1 0.9 0.3 0.4" size="0.006 0.006 0.006" />
+    </default>
+  </default>
+  <worldbody>
+    <body name="palm" pos="0 0 0" euler="0 0 0">
+      <geom name="palm_geom" type="box" size="0.045 0.030 0.012" pos="0 0 0" rgba="0.92 0.86 0.74 1" class="shadow_finger" />
+      <site name="tactile_palm" class="tactile_sensor" pos="0 0.025 0.012" size="0.020 0.020 0.002" type="box" />
+      <inertial pos="0 0 0" mass="0.35" diaginertia="0.001 0.002 0.0025" />
+      <body name="link_TH1" pos="0 0 0" euler="0 0 0">
+        <joint name="A_THJ1" type="hinge" axis="1 0 0" class="shadow_finger" range="-1.57 1.57" damping="0.3" armature="0.005" />
+        <geom name="geom_link_TH1" type="capsule" fromto="0 0 0 0 0 -0.0400" size="0.0090" class="shadow_finger" />
+        <geom name="knuckle_link_TH1" type="sphere" size="0.0095" pos="0 0 0" class="shadow_finger" />
+        <body name="link_TH2" pos="0 0 -0.040" euler="0 0 0">
+          <joint name="A_THJ2" type="hinge" axis="0 1 0" class="shadow_finger" range="-1.57 1.57" damping="0.3" armature="0.005" />
+          <geom name="geom_link_TH2" type="capsule" fromto="0 0 0 0 0 -0.0380" size="0.0085" class="shadow_finger" />
+          <geom name="knuckle_link_TH2" type="sphere" size="0.0089" pos="0 0 0" class="shadow_finger" />
+          <body name="link_TH3" pos="0 0 -0.038" euler="0 0 0">
+            <joint name="A_THJ3" type="hinge" axis="0 1 0" class="shadow_finger" range="-1.57 1.57" damping="0.3" armature="0.005" />
+            <geom name="geom_link_TH3" type="capsule" fromto="0 0 0 0 0 -0.0300" size="0.0080" class="shadow_finger" />
+            <geom name="knuckle_link_TH3" type="sphere" size="0.0084" pos="0 0 0" class="shadow_finger" />
+            <body name="link_TH4" pos="0 0 -0.030" euler="0 0 0">
+              <joint name="A_THJ4" type="hinge" axis="0 1 0" class="shadow_finger" range="-1.57 1.57" damping="0.3" armature="0.005" />
+              <geom name="geom_link_TH4" type="capsule" fromto="0 0 0 0 0 -0.0280" size="0.0075" class="shadow_finger" />
+              <geom name="knuckle_link_TH4" type="sphere" size="0.0079" pos="0 0 0" class="shadow_finger" />
+              <site name="tactile_TH" class="tactile_sensor" pos="0 0 -0.026" size="0.008 0.008 0.004" type="box" />
+            </body>
+          </body>
+        </body>
+      </body>
+      <body name="link_IF1" pos="0 0 0" euler="0 0 0">
+        <joint name="A_IFJ1" type="hinge" axis="1 0 0" class="shadow_finger" range="-1.57 1.57" damping="0.3" armature="0.005" />
+        <geom name="geom_link_IF1" type="capsule" fromto="0 0 0 0 0 0.0400" size="0.0080" class="shadow_finger" />
+        <geom name="knuckle_link_IF1" type="sphere" size="0.0084" pos="0 0 0" class="shadow_finger" />
+        <body name="link_IF2" pos="0 0 0.040" euler="0 0 0">
+          <joint name="A_IFJ2" type="hinge" axis="0 1 0" class="shadow_finger" range="-1.57 1.57" damping="0.3" armature="0.005" />
+          <geom name="geom_link_IF2" type="capsule" fromto="0 0 0 0 0 0.0350" size="0.0075" class="shadow_finger" />
+          <geom name="knuckle_link_IF2" type="sphere" size="0.0079" pos="0 0 0" class="shadow_finger" />
+          <body name="link_IF3" pos="0 0 0.035" euler="0 0 0">
+            <joint name="A_IFJ3" type="hinge" axis="0 1 0" class="shadow_finger" range="-1.57 1.57" damping="0.3" armature="0.005" />
+            <geom name="geom_link_IF3" type="capsule" fromto="0 0 0 0 0 0.0280" size="0.0070" class="shadow_finger" />
+            <geom name="knuckle_link_IF3" type="sphere" size="0.0074" pos="0 0 0" class="shadow_finger" />
+            <site name="tactile_IF" class="tactile_sensor" pos="0 0 0.026" size="0.008 0.008 0.004" type="box" />
+          </body>
+        </body>
+      </body>
+      <body name="link_MF1" pos="0 0 0" euler="0 0 0">
+        <joint name="A_MFJ1" type="hinge" axis="1 0 0" class="shadow_finger" range="-1.57 1.57" damping="0.3" armature="0.005" />
+        <geom name="geom_link_MF1" type="capsule" fromto="0 0 0 0 0 0.0420" size="0.0080" class="shadow_finger" />
+        <geom name="knuckle_link_MF1" type="sphere" size="0.0084" pos="0 0 0" class="shadow_finger" />
+        <body name="link_MF2" pos="0 0 0.042" euler="0 0 0">
+          <joint name="A_MFJ2" type="hinge" axis="0 1 0" class="shadow_finger" range="-1.57 1.57" damping="0.3" armature="0.005" />
+          <geom name="geom_link_MF2" type="capsule" fromto="0 0 0 0 0 0.0360" size="0.0075" class="shadow_finger" />
+          <geom name="knuckle_link_MF2" type="sphere" size="0.0079" pos="0 0 0" class="shadow_finger" />
+          <body name="link_MF3" pos="0 0 0.036" euler="0 0 0">
+            <joint name="A_MFJ3" type="hinge" axis="0 1 0" class="shadow_finger" range="-1.57 1.57" damping="0.3" armature="0.005" />
+            <geom name="geom_link_MF3" type="capsule" fromto="0 0 0 0 0 0.0280" size="0.0070" class="shadow_finger" />
+            <geom name="knuckle_link_MF3" type="sphere" size="0.0074" pos="0 0 0" class="shadow_finger" />
+            <site name="tactile_MF" class="tactile_sensor" pos="0 0 0.026" size="0.008 0.008 0.004" type="box" />
+          </body>
+        </body>
+      </body>
+      <body name="link_RF1" pos="0 0 0" euler="0 0 0">
+        <joint name="A_RFJ1" type="hinge" axis="1 0 0" class="shadow_finger" range="-1.57 1.57" damping="0.3" armature="0.005" />
+        <geom name="geom_link_RF1" type="capsule" fromto="0 0 0 0 0 0.0380" size="0.0075" class="shadow_finger" />
+        <geom name="knuckle_link_RF1" type="sphere" size="0.0079" pos="0 0 0" class="shadow_finger" />
+        <body name="link_RF2" pos="0 0 0.038" euler="0 0 0">
+          <joint name="A_RFJ2" type="hinge" axis="0 1 0" class="shadow_finger" range="-1.57 1.57" damping="0.3" armature="0.005" />
+          <geom name="geom_link_RF2" type="capsule" fromto="0 0 0 0 0 0.0320" size="0.0070" class="shadow_finger" />
+          <geom name="knuckle_link_RF2" type="sphere" size="0.0074" pos="0 0 0" class="shadow_finger" />
+          <body name="link_RF3" pos="0 0 0.032" euler="0 0 0">
+            <joint name="A_RFJ3" type="hinge" axis="0 1 0" class="shadow_finger" range="-1.57 1.57" damping="0.3" armature="0.005" />
+            <geom name="geom_link_RF3" type="capsule" fromto="0 0 0 0 0 0.0260" size="0.0065" class="shadow_finger" />
+            <geom name="knuckle_link_RF3" type="sphere" size="0.0068" pos="0 0 0" class="shadow_finger" />
+            <site name="tactile_RF" class="tactile_sensor" pos="0 0 0.024" size="0.008 0.008 0.004" type="box" />
+          </body>
+        </body>
+      </body>
+      <body name="link_LF1" pos="0 0 0" euler="0 0 0">
+        <joint name="A_LFJ1" type="hinge" axis="1 0 0" class="shadow_finger" range="-1.57 1.57" damping="0.3" armature="0.005" />
+        <geom name="geom_link_LF1" type="capsule" fromto="0 0 0 0 0 0.0340" size="0.0070" class="shadow_finger" />
+        <geom name="knuckle_link_LF1" type="sphere" size="0.0074" pos="0 0 0" class="shadow_finger" />
+        <body name="link_LF2" pos="0 0 0.034" euler="0 0 0">
+          <joint name="A_LFJ2" type="hinge" axis="0 1 0" class="shadow_finger" range="-1.57 1.57" damping="0.3" armature="0.005" />
+          <geom name="geom_link_LF2" type="capsule" fromto="0 0 0 0 0 0.0280" size="0.0065" class="shadow_finger" />
+          <geom name="knuckle_link_LF2" type="sphere" size="0.0068" pos="0 0 0" class="shadow_finger" />
+          <body name="link_LF3" pos="0 0 0.028" euler="0 0 0">
+            <joint name="A_LFJ3" type="hinge" axis="0 1 0" class="shadow_finger" range="-1.57 1.57" damping="0.3" armature="0.005" />
+            <geom name="geom_link_LF3" type="capsule" fromto="0 0 0 0 0 0.0240" size="0.0060" class="shadow_finger" />
+            <geom name="knuckle_link_LF3" type="sphere" size="0.0063" pos="0 0 0" class="shadow_finger" />
+            <site name="tactile_LF" class="tactile_sensor" pos="0 0 0.022" size="0.008 0.008 0.004" type="box" />
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <position name="act_THJ1" joint="A_THJ1" class="shadow_finger" kp="40" ctrlrange="-1.57 1.57" forcerange="-3 3" />
+    <position name="act_THJ2" joint="A_THJ2" class="shadow_finger" kp="40" ctrlrange="-1.57 1.57" forcerange="-3 3" />
+    <position name="act_THJ3" joint="A_THJ3" class="shadow_finger" kp="40" ctrlrange="-1.57 1.57" forcerange="-3 3" />
+    <position name="act_THJ4" joint="A_THJ4" class="shadow_finger" kp="40" ctrlrange="-1.57 1.57" forcerange="-3 3" />
+    <position name="act_IFJ1" joint="A_IFJ1" class="shadow_finger" kp="40" ctrlrange="-1.57 1.57" forcerange="-3 3" />
+    <position name="act_IFJ2" joint="A_IFJ2" class="shadow_finger" kp="40" ctrlrange="-1.57 1.57" forcerange="-3 3" />
+    <position name="act_IFJ3" joint="A_IFJ3" class="shadow_finger" kp="40" ctrlrange="-1.57 1.57" forcerange="-3 3" />
+    <position name="act_MFJ1" joint="A_MFJ1" class="shadow_finger" kp="40" ctrlrange="-1.57 1.57" forcerange="-3 3" />
+    <position name="act_MFJ2" joint="A_MFJ2" class="shadow_finger" kp="40" ctrlrange="-1.57 1.57" forcerange="-3 3" />
+    <position name="act_MFJ3" joint="A_MFJ3" class="shadow_finger" kp="40" ctrlrange="-1.57 1.57" forcerange="-3 3" />
+    <position name="act_RFJ1" joint="A_RFJ1" class="shadow_finger" kp="40" ctrlrange="-1.57 1.57" forcerange="-3 3" />
+    <position name="act_RFJ2" joint="A_RFJ2" class="shadow_finger" kp="40" ctrlrange="-1.57 1.57" forcerange="-3 3" />
+    <position name="act_RFJ3" joint="A_RFJ3" class="shadow_finger" kp="40" ctrlrange="-1.57 1.57" forcerange="-3 3" />
+    <position name="act_LFJ1" joint="A_LFJ1" class="shadow_finger" kp="40" ctrlrange="-1.57 1.57" forcerange="-3 3" />
+    <position name="act_LFJ2" joint="A_LFJ2" class="shadow_finger" kp="40" ctrlrange="-1.57 1.57" forcerange="-3 3" />
+    <position name="act_LFJ3" joint="A_LFJ3" class="shadow_finger" kp="40" ctrlrange="-1.57 1.57" forcerange="-3 3" />
+  </actuator>
+  <sensor>
+    <touch name="s_tactile_TH" site="tactile_TH" />
+    <touch name="s_tactile_IF" site="tactile_IF" />
+    <touch name="s_tactile_MF" site="tactile_MF" />
+    <touch name="s_tactile_RF" site="tactile_RF" />
+    <touch name="s_tactile_LF" site="tactile_LF" />
+    <touch name="s_tactile_palm" site="tactile_palm" />
+  </sensor>
+</mujoco>

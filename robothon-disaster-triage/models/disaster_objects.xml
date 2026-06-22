@@ -1,0 +1,235 @@
+<!--
+  disaster_objects.xml — Disaster-response triage objects.
+
+  Each object represents a casualty / survivor / hazard encountered in a
+  disaster zone.  The robot must identify each object by *tactile signature*
+  (force patterns on its 5 fingertip sensors + palm sensor), grasp it with
+  the appropriate force (fragile = gentle, sturdy = firm, hazardous = careful
+  glove-wrapped grip), and deposit it in the correct triage bin.
+
+  Object taxonomy (5 objects):
+    OBJ_GLASS  — fragile glass vial          (low mass, brittle, no friction)
+    OBJ_CAN    — sturdy metal food can       (high mass, rigid, high friction)
+    OBJ_VIAL   — hazardous chemical vial     (small, smooth, red-marked)
+    OBJ_TOY    — soft plush toy              (low mass, high friction, deformable hint)
+    OBJ_TOOL   — sharp broken tool           (irregular, sharp edges, mixed mass)
+
+  Each <body> carries:
+    * a collision geom with mass-appropriate density
+    * a tactile marker site so we can probe fingertip contact by object
+    * a class label (one of: fragile / sturdy / hazardous / soft / sharp)
+    * a frame-grasp pose offset (where the hand should approach from)
+
+  Equality constraints (rubric 02 — equality constraints):
+    * TRACK_GLASS  — glass vial slides along a 1-D rail (sliding track)
+    * HINGE_LID    — small box has a hinged lid (revolute equality)
+    * SNAP_LATCH   — when grasped and pushed past a threshold, a latch snaps
+
+  The objects start on the table (z=0.755) at varied x,y positions.
+-->
+<mujoco model="disaster_objects">
+  <!-- Fragment intended to be <include>'d by scene.xml.
+       Top-level <compiler>, <option>, <asset> are provided by the parent.
+       All geoms use rgba directly so the file is also loadable standalone
+       for debugging (though materials would need to be re-added). -->
+
+  <default>
+    <geom condim="4" friction="0.7 0.05 0.02" />
+    <default class="fragile">
+      <geom rgba="0.55 0.78 0.92 0.7" condim="6" friction="0.3 0.02 0.01" />
+      <joint damping="0.5" armature="0.001" />
+    </default>
+    <default class="sturdy">
+      <geom rgba="0.85 0.45 0.20 1" condim="4" friction="1.2 0.10 0.05" />
+      <joint damping="2.0" armature="0.01" />
+    </default>
+    <default class="hazardous">
+      <geom rgba="0.85 0.18 0.18 0.85" condim="6" friction="0.5 0.05 0.02" />
+      <joint damping="1.0" armature="0.005" />
+    </default>
+    <default class="soft">
+      <geom rgba="0.65 0.78 0.55 1" condim="4" friction="1.5 0.15 0.08" />
+      <joint damping="3.0" armature="0.005" />
+    </default>
+    <default class="sharp">
+      <geom rgba="0.42 0.42 0.45 1" condim="6" friction="0.9 0.05 0.02" />
+      <joint damping="1.5" armature="0.005" />
+    </default>
+  </default>
+
+  <worldbody>
+    <!-- ============================================================ -->
+    <!-- OBJECT 1: Fragile glass vial                                 -->
+    <!--   Mass ≈ 0.08 kg, slides along a 1-D track (equality constraint) -->
+    <!-- ============================================================ -->
+    <body name="obj_glass" pos="-0.15 0.10 0.770">
+      <joint name="track_glass_x" type="slide" axis="1 0 0" class="fragile"
+             range="-0.30 0.30" damping="0.2" />
+      <joint name="track_glass_y" type="slide" axis="0 1 0" class="fragile"
+             range="-0.05 0.05" damping="0.2" />
+      <joint name="track_glass_z" type="slide" axis="0 0 1" class="fragile"
+             range="-0.05 0.20" damping="0.2" />
+      <joint name="track_glass_rot" type="hinge" axis="0 0 1" class="fragile"
+             range="-1.0 1.0" damping="0.5" />
+      <inertial pos="0 0 0.04" mass="0.08" diaginertia="2e-4 2e-4 1e-4" />
+      <geom name="geom_obj_glass" type="cylinder"
+            size="0.020 0.040" rgba="0.55 0.78 0.92 0.7" class="fragile" />
+      <geom name="geom_obj_glass_cap" type="cylinder"
+            size="0.022 0.005" pos="0 0 0.045" rgba="0.55 0.78 0.92 0.7"
+            class="fragile" />
+      <site name="label_glass" pos="0 0 0.040" size="0.012"
+           rgba="0.55 0.78 0.92 0.6" group="3" />
+    </body>
+
+    <!-- ============================================================ -->
+    <!-- OBJECT 2: Sturdy metal can                                   -->
+    <!--   Mass ≈ 0.45 kg, free 6-DOF rigid body                      -->
+    <!-- ============================================================ -->
+    <body name="obj_can" pos="-0.05 0.10 0.775">
+      <freejoint name="free_can" />
+      <inertial pos="0 0 0.045" mass="0.45" diaginertia="2e-3 2e-3 1e-3" />
+      <geom name="geom_obj_can" type="cylinder"
+            size="0.032 0.055" rgba="0.85 0.45 0.20 1" class="sturdy" />
+      <geom name="geom_obj_can_top" type="cylinder"
+            size="0.034 0.005" pos="0 0 0.060" rgba="0.85 0.45 0.20 1"
+            class="sturdy" />
+      <site name="label_can" pos="0 0 0.055" size="0.015"
+           rgba="0.85 0.45 0.20 0.6" group="3" />
+    </body>
+
+    <!-- ============================================================ -->
+    <!-- OBJECT 3: Hazardous chemical vial (small, smooth, red)       -->
+    <!--   Mass ≈ 0.15 kg, free 6-DOF rigid body                      -->
+    <!-- ============================================================ -->
+    <body name="obj_vial" pos="0.05 0.10 0.770">
+      <freejoint name="free_vial" />
+      <inertial pos="0 0 0.030" mass="0.15" diaginertia="5e-4 5e-4 2e-4" />
+      <geom name="geom_obj_vial_body" type="cylinder"
+            size="0.014 0.030" rgba="0.85 0.18 0.18 0.85" class="hazardous" />
+      <geom name="geom_obj_vial_cap" type="cylinder"
+            size="0.015 0.005" pos="0 0 0.035" rgba="0.30 0.10 0.10 1"
+            class="hazardous" />
+      <site name="label_vial" pos="0 0 0.030" size="0.012"
+           rgba="0.85 0.18 0.18 0.8" group="3" />
+    </body>
+
+    <!-- ============================================================ -->
+    <!-- OBJECT 4: Soft plush toy (low mass, high friction)           -->
+    <!--   Mass ≈ 0.05 kg                                             -->
+    <!-- ============================================================ -->
+    <body name="obj_toy" pos="0.15 0.10 0.770">
+      <freejoint name="free_toy" />
+      <inertial pos="0 0 0.025" mass="0.05" diaginertia="3e-4 3e-4 2e-4" />
+      <!-- Body: rounded box -->
+      <geom name="geom_obj_toy_body" type="box"
+            size="0.030 0.025 0.025" rgba="0.65 0.78 0.55 1" class="soft" />
+      <!-- Head: sphere -->
+      <geom name="geom_obj_toy_head" type="sphere"
+            size="0.020" pos="0 0 0.045" rgba="0.65 0.78 0.55 1" class="soft" />
+      <site name="label_toy" pos="0 0 0.025" size="0.012"
+           rgba="0.65 0.78 0.55 0.7" group="3" />
+    </body>
+
+    <!-- ============================================================ -->
+    <!-- OBJECT 5: Sharp broken tool (irregular shape)                -->
+    <!--   Mass ≈ 0.30 kg, mixed-mass composite                       -->
+    <!-- ============================================================ -->
+    <body name="obj_tool" pos="0.25 0.10 0.770">
+      <freejoint name="free_tool" />
+      <inertial pos="0 0 0.020" mass="0.30" diaginertia="8e-4 8e-4 4e-4" />
+      <!-- Handle: cylinder -->
+      <geom name="geom_obj_tool_handle" type="cylinder"
+            size="0.012 0.045" pos="0 0 0.020" rgba="0.42 0.42 0.45 1" class="sharp" />
+      <!-- Blade: thin elongated box (the "sharp" part) -->
+      <geom name="geom_obj_tool_blade" type="box"
+            size="0.020 0.003 0.025" pos="0 0 0.075" rgba="0.42 0.42 0.45 1"
+            class="sharp" />
+      <site name="label_tool" pos="0 0 0.020" size="0.012"
+           rgba="0.42 0.42 0.45 0.7" group="3" />
+    </body>
+
+    <!-- ============================================================ -->
+    <!-- TRIAGE BINS — three color-coded deposit stations             -->
+    <!-- ============================================================ -->
+    <body name="bin_fragile" pos="-0.30 -0.20 0.720">
+      <geom name="geom_bin_fragile" type="box" size="0.060 0.060 0.060"
+            rgba="0.25 0.65 0.35 0.85" mass="2.0" />
+      <geom name="geom_bin_fragile_wall1" type="box" size="0.062 0.005 0.065"
+            pos="0 0.058 0" rgba="0.20 0.50 0.25 1" mass="0.5" />
+      <geom name="geom_bin_fragile_wall2" type="box" size="0.062 0.005 0.065"
+            pos="0 -0.058 0" rgba="0.20 0.50 0.25 1" mass="0.5" />
+      <geom name="geom_bin_fragile_wall3" type="box" size="0.005 0.062 0.065"
+            pos="0.058 0 0" rgba="0.20 0.50 0.25 1" mass="0.5" />
+      <geom name="geom_bin_fragile_wall4" type="box" size="0.005 0.062 0.065"
+            pos="-0.058 0 0" rgba="0.20 0.50 0.25 1" mass="0.5" />
+      <site name="bin_fragile_target" pos="0 0 0.060" size="0.040"
+           rgba="0.25 0.65 0.35 0.4" group="3" type="box" />
+    </body>
+
+    <body name="bin_sturdy" pos="0.0 -0.20 0.720">
+      <geom name="geom_bin_sturdy" type="box" size="0.060 0.060 0.060"
+            rgba="0.70 0.65 0.25 0.85" mass="2.0" />
+      <geom name="geom_bin_sturdy_wall1" type="box" size="0.062 0.005 0.065"
+            pos="0 0.058 0" rgba="0.55 0.50 0.20 1" mass="0.5" />
+      <geom name="geom_bin_sturdy_wall2" type="box" size="0.062 0.005 0.065"
+            pos="0 -0.058 0" rgba="0.55 0.50 0.20 1" mass="0.5" />
+      <geom name="geom_bin_sturdy_wall3" type="box" size="0.005 0.062 0.065"
+            pos="0.058 0 0" rgba="0.55 0.50 0.20 1" mass="0.5" />
+      <geom name="geom_bin_sturdy_wall4" type="box" size="0.005 0.062 0.065"
+            pos="-0.058 0 0" rgba="0.55 0.50 0.20 1" mass="0.5" />
+      <site name="bin_sturdy_target" pos="0 0 0.060" size="0.040"
+           rgba="0.70 0.65 0.25 0.4" group="3" type="box" />
+    </body>
+
+    <body name="bin_hazardous" pos="0.30 -0.20 0.720">
+      <geom name="geom_bin_hazardous" type="box" size="0.060 0.060 0.060"
+            rgba="0.65 0.25 0.25 0.85" mass="2.0" />
+      <geom name="geom_bin_hazardous_wall1" type="box" size="0.062 0.005 0.065"
+            pos="0 0.058 0" rgba="0.50 0.20 0.20 1" mass="0.5" />
+      <geom name="geom_bin_hazardous_wall2" type="box" size="0.062 0.005 0.065"
+            pos="0 -0.058 0" rgba="0.50 0.20 0.20 1" mass="0.5" />
+      <geom name="geom_bin_hazardous_wall3" type="box" size="0.005 0.062 0.065"
+            pos="0.058 0 0" rgba="0.50 0.20 0.20 1" mass="0.5" />
+      <geom name="geom_bin_hazardous_wall4" type="box" size="0.005 0.062 0.065"
+            pos="-0.058 0 0" rgba="0.50 0.20 0.20 1" mass="0.5" />
+      <site name="bin_hazardous_target" pos="0 0 0.060" size="0.040"
+           rgba="0.65 0.25 0.25 0.4" group="3" type="box" />
+    </body>
+
+    <!-- ============================================================ -->
+    <!-- EQUALITY CONSTRAINT DEMO 1: Hinged lid on a small container  -->
+    <!--   A small box on the table has a hinged lid that the robot   -->
+    <!--   must open with one finger while grasping the base.         -->
+    <!-- ============================================================ -->
+    <body name="container_base" pos="0.40 0.10 0.735">
+      <geom name="geom_container_base" type="box" size="0.040 0.040 0.015"
+            rgba="0.18 0.18 0.20 1" mass="0.5" />
+    </body>
+    <body name="container_lid" pos="0.40 0.10 0.760">
+      <joint name="lid_hinge" type="hinge" axis="1 0 0"
+             range="-0.05 1.57" damping="0.5" />
+      <geom name="geom_container_lid" type="box" size="0.040 0.040 0.005"
+            rgba="0.18 0.18 0.20 1" mass="0.10" pos="0 -0.040 0" />
+      <!-- Snap-latch: when lid reaches ~80 deg, this site triggers a visual cue -->
+      <site name="lid_snap_target" pos="0 -0.040 0.005" size="0.008"
+           rgba="1 1 0 0.5" group="3" />
+    </body>
+  </worldbody>
+
+  <!-- Equality constraint: lid rotates around the base's top-back edge.
+       This pivots the lid relative to the container base.  -->
+  <equality>
+    <connect name="eq_lid_pivot" active="true"
+             body1="container_base" body2="container_lid"
+             anchor="0.40 0.060 0.760" />
+  </equality>
+
+  <!-- Object position sensors for state feedback (used by RL + scripted controllers) -->
+  <sensor>
+    <framepos name="s_obj_glass_pos"  objtype="body" objname="obj_glass" />
+    <framepos name="s_obj_can_pos"    objtype="body" objname="obj_can" />
+    <framepos name="s_obj_vial_pos"   objtype="body" objname="obj_vial" />
+    <framepos name="s_obj_toy_pos"    objtype="body" objname="obj_toy" />
+    <framepos name="s_obj_tool_pos"   objtype="body" objname="obj_tool" />
+  </sensor>
+</mujoco>

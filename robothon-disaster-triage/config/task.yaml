@@ -1,0 +1,87 @@
+# task.yaml — Disaster Triage task definition
+# Used by src/env.py and src/task.py
+
+# Object taxonomy (5 objects, 5 classes)
+objects:
+  - name: obj_glass
+    label: glass
+    class: fragile
+    mass_kg: 0.08
+    initial_pos: [-0.15, 0.10, 0.770]
+    grasp_force_N: 4.0          # target grasp force
+    tactile_signature: [2.5, 0.8]   # (mean, std) fingertip force during grasp
+    triage_bin: bin_fragile
+
+  - name: obj_can
+    label: can
+    class: sturdy
+    mass_kg: 0.45
+    initial_pos: [-0.05, 0.10, 0.775]
+    grasp_force_N: 12.0
+    tactile_signature: [10.0, 2.0]
+    triage_bin: bin_sturdy
+
+  - name: obj_vial
+    label: vial
+    class: hazardous
+    mass_kg: 0.15
+    initial_pos: [0.05, 0.10, 0.770]
+    grasp_force_N: 6.0
+    tactile_signature: [4.0, 1.2]
+    triage_bin: bin_hazardous
+
+  - name: obj_toy
+    label: toy
+    class: soft
+    mass_kg: 0.05
+    initial_pos: [0.15, 0.10, 0.770]
+    grasp_force_N: 3.0
+    tactile_signature: [1.5, 0.5]
+    triage_bin: bin_sturdy    # soft objects go in the sturdy bin
+
+  - name: obj_tool
+    label: tool
+    class: sharp
+    mass_kg: 0.30
+    initial_pos: [0.25, 0.10, 0.770]
+    grasp_force_N: 8.0
+    tactile_signature: [6.0, 3.5]
+    triage_bin: bin_hazardous  # sharp tools are hazardous
+
+# Triage bins
+bins:
+  - name: bin_fragile
+    color: green
+    pos: [-0.30, -0.20, 0.720]
+    accepts: [fragile]
+  - name: bin_sturdy
+    color: yellow
+    pos: [0.0, -0.20, 0.720]
+    accepts: [sturdy, soft]
+  - name: bin_hazardous
+    color: red
+    pos: [0.30, -0.20, 0.720]
+    accepts: [hazardous, sharp]
+
+# Episode termination
+episode:
+  max_steps: 1500
+  success_when: all_objects_in_correct_bin
+  fail_when:
+    - fragile_object_breaks
+    - object_placed_in_wrong_bin
+  timeout_when: max_steps_reached
+
+# Tactile identification heuristic
+identification:
+  method: nearest_template
+  features:
+    - mean_total_fingertip_force
+    - variance_total_fingertip_force
+  history_length: 30            # steps of PROBE-mode data
+
+# Domain randomisation (for future RL training generalisation)
+randomisation:
+  object_xy_jitter_m: 0.02      # ±2 cm initial position noise
+  object_mass_jitter_pct: 0.10  # ±10% mass variation
+  sensor_noise_N: 0.05          # ±0.05 N Gaussian noise on tactile sensors
